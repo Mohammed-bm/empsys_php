@@ -51,4 +51,16 @@ class LeaveController extends Controller
 
         return redirect()->route('leaves.index')->with('success', 'Leave balances updated successfully!');
     }
+
+    public function myLeaves(Request $request)
+    {
+        $user = auth()->user();
+
+        // Fetches salary/leave record belonging to the logged-in user's employee ID
+        $salary = EmployeeSalary::with('employee')
+            ->where('employee_number', $user->employee_number ?? optional($user->employee)->employee_number)
+            ->first();
+
+        return view('leaves.my-leaves', compact('salary'));
+    }
 }

@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     // Explicitly target your existing table
     protected $table = 'users';
@@ -26,9 +26,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
-        'employee_number',
-        'created_at',
     ];
 
     /**
@@ -37,7 +34,8 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'password'
+        'password',
+        'remember_token'
     ];
 
     /**
@@ -48,7 +46,12 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'created_at' => 'datetime',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
         ];
+    }
+    public function employee()
+    {
+        return $this->hasOne(Employee::class, 'user_id', 'id');
     }
 }
