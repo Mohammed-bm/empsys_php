@@ -15,7 +15,7 @@ class User extends Authenticatable
     protected $table = 'users';
 
     // Disable updated_at since your DB table only has created_at
-    public $timestamps = false;
+    const UPDATED_AT = null;
 
     /**
      * The attributes that are mass assignable.

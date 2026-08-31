@@ -9,6 +9,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Gate;
+use Spatie\Permission\Models\Role;
+use Illuminate\Validation\Rules\Password;
 
 class EmployeeController extends Controller
 {
@@ -20,8 +22,9 @@ class EmployeeController extends Controller
         }
 
         $employees = Employee::with('user.roles')->latest()->paginate(15);
+        $roles = Role::all();
 
-        return view('employees.index', compact('employees'));
+        return view('employees.index', compact('employees', 'roles'));
     }
 
     public function myProfile()
@@ -35,11 +38,15 @@ class EmployeeController extends Controller
     // POST /employees
     public function store(Request $request)
     {
+        Gate::authorize('create', Employee::class);
 
         $validated = $request->validate([
-            'emp_name' => 'required|string',
+            'emp_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email|unique:employees,email',
+            'password' => ['required', 'confirmed', Password::defaults()],
+            'role' => 'required|string|exists:roles,name',
+
             'employee_number' => 'required|unique:employees,employee_number',
-            'email' => 'required|email|unique:employees,email',
             'phone' => 'required',
             'base_salary' => 'required|numeric',
             'function_name' => 'required|string',
@@ -58,12 +65,10 @@ class EmployeeController extends Controller
             $user = User::create([
                 'name'     => $validated['emp_name'],
                 'email'    => $validated['email'],
-                'password' => Hash::make('defaultPassword123!'), // Set default initial password
+                'password' => Hash::make($validated['password']),
             ]);
 
-            // Step B: Assign Spatie Role (uses form role if provided, defaults to 'employee')
-            $roleToAssign = $validated['role'] ?? 'employee';
-            $user->assignRole($roleToAssign);
+            $user->assignRole($validated['role']);
 
             // Step C: Create Employee Profile linked via user_id
             $user->employee()->create([
@@ -128,6 +133,10 @@ class EmployeeController extends Controller
                     'name'  => $validated['emp_name'],
                     'email' => $validated['email'],
                 ]);
+
+                if (!empty($validated['role'])) {
+                    $employee->user->syncRoles([$validated['role']]);
+                }
             }
 
             // Update Employee profile record
